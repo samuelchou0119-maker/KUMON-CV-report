@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KUMON 學生訪問報告生成系統</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #0284c7;
+      --primary-light: #e0f2fe;
+      --secondary-color: #334155;
+      --border-color: #cbd5e1;
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+
+    header h1 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+    .header-btns { display: flex; gap: 8px; }
+
+    .mobile-tabs {
+      display: none;
+      background: #0f172a;
+      padding: 6px;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: #1e293b;
+      color: #94a3b8;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+
+    .tab-btn.active { background: var(--primary-color); color: white; }
+
+    .main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .form-pane {
+      flex: 1.1;
+      padding: 16px;
+      overflow-y: auto;
+      border-right: 1px solid var(--border-color);
+    }
+
+    .preview-pane {
+      flex: 0.9;
+      background-color: var(--card-bg);
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid var(--border-color);
+    }
+
+    .section-card {
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border: 1px solid var(--border-color);
+    }
+
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: var(--primary-color);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--primary-light);
+      padding-bottom: 6px;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    label { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); }
+
+    input[type="text"], input[type="number"], input[type="date"], select, textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+      background-color: #fff;
+    }
+
+    input:focus, select:focus, textarea:focus { border-color: var(--primary-color); }
+    textarea { resize: vertical; min-height: 65px; line-height: 1.5; }
+
+    .readonly-box {
+      background-color: #f1f5f9;
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+    }
+
+    .preview-header {
+      padding: 12px 16px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .preview-content {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-family: monospace, monospace;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: #1e293b;
+      background-color: #fff;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+    }
+
+    .btn-primary { background-color: var(--primary-color); color: white; }
+    .btn-warning { background-color: #f59e0b; color: white; }
+    .btn-secondary { background-color: #e2e8f0; color: #334155; }
+
+    .float-btn {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      color: white;
+      font-size: 1.2rem;
+      border: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      z-index: 99;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #0f172a;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      display: none;
+      z-index: 100;
+      font-size: 0.85rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(3px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-card {
+      background: #fff;
+      width: 95%;
+      max-width: 800px;
+      max-height: 85vh;
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+
+    .modal-body { overflow-y: auto; flex: 1; }
+
+    table.y-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+
+    table.y-table th, table.y-table td {
+      border: 1px solid var(--border-color);
+      padding: 8px 10px;
+      text-align: left;
+    }
+
+    table.y-table th { background: #f1f5f9; color: var(--secondary-color); font-weight: 700; }
+
+    @media (max-width: 850px) {
+      .mobile-tabs { display: flex; }
+      .main-container { flex-direction: column; overflow: hidden; }
+      .form-pane, .preview-pane { flex: none; width: 100%; height: 100%; border: none; }
+      .preview-pane { display: none; }
+      .preview-pane.active { display: flex; }
+      .form-pane.hidden { display: none; }
+      .float-btn { display: flex; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1><i class="fa-solid fa-file-pen"></i> KUMON 學生訪問報告</h1>
+    <div class="header-btns">
+      <button class="btn btn-primary" onclick="copyReport()"><i class="fa-solid fa-copy"></i> 複製內文</button>
+    </div>
+  </header>
+
+  <div class="mobile-tabs">
+    <button id="btnTabForm" class="tab-btn active" onclick="switchMobileTab('form')">① 填寫表單</button>
+    <button id="btnTabPreview" class="tab-btn" onclick="switchMobileTab('preview')">② 即時報告</button>
+  </div>
+
+  <div class="main-container">
+    <div class="form-pane" id="formPane">
+
+      <!-- ① 學生基本資料 -->
+      <div class="section-card">
+        <div class="section-title"><span>① 👤 學生基本資料</span></div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>學生姓名</label>
+            <input type="text" id="studentName" oninput="updateReport()" placeholder="例：徐藝庭">
+          </div>
+          <div class="form-group">
+            <label>學年</label>
+            <select id="studentGrade" onchange="updateReport()">
+              <option value="">-- 請選擇 --</option>
+              <option value="幼未">幼未</option><option value="幼小">幼小</option><option value="幼中">幼中</option><option value="幼大">幼大</option>
+              <option value="小一">小一</option><option value="小二">小二</option><option value="小三">小三</option><option value="小四">小四</option><option value="小五">小五</option><option value="小六">小六</option>
+              <option value="國一">國一</option><option value="國二">國二</option><option value="國三">國三</option>
+              <option value="高一">高一</option><option value="高二">高二</option><option value="高三">高三</option>
+              <option value="大學">大學</option><option value="社會人士">社會人士</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label>教室名稱</label>
+            <select id="classroom" onchange="onClassroomChange()">
+              <option value="">-- 請選擇教室 --</option>
+              <option value="KUMON士林天母教室">KUMON士林天母教室</option>
+              <option value="KUMON士林劍潭教室">KUMON士林劍潭教室</option>
+              <option value="KUMON 淡水北新教室">KUMON 淡水北新教室</option>
+              <option value="KUMON 淡水新市一路教室">KUMON 淡水新市一路教室</option>
+              <option value="KUMON 基隆愛六路教室">KUMON 基隆愛六路教室</option>
+              <option value="KUMON 基隆暖暖教室">KUMON 基隆暖暖教室</option>
+              <option value="KUMON汐止仁愛教室">KUMON汐止仁愛教室</option>
+              <option value="KUMON新店中興德正教室">KUMON新店中興德正教室</option>
+              <option value="KUMON 新莊中港教室">KUMON 新莊中港教室</option>
+              <option value="KUMON新莊昌平教室">KUMON新莊昌平教室</option>
+              <option value="KUMON 新莊中正天泉教室">KUMON 新莊中正天泉教室</option>
+              <option value="KUMON 林口文化三路三民教室">KUMON 林口文化三路三民教室</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>負責老師</label>
+            <div id="teacherName" class="readonly-box">--</div>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="form-group">
+            <label>入學年份</label>
+            <select id="enrollYear" onchange="calculateDuration(); updateReport();">
+              <option value="">年</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>入學月份</label>
+            <select id="enrollMonth" onchange="calculateDuration(); updateReport();">
+              <option value="">月</option>
+              <option value="01">1月</option><option value="02">2月</option><option value="03">3月</option><option value="04">4月</option>
+              <option value="05">5月</option><option value="06">6月</option><option value="07">7月</option><option value="08">8月</option>
+              <option value="09">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>學習期間</label>
+            <div id="studyPeriod" class="readonly-box">--</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>通常到教室時間</label>
+          <input type="text" id="classDays" oninput="updateReport()" placeholder="例：一、三">
+        </div>
+      </div>
+
+      <!-- ② 本次訪問資訊 -->
+      <div class="section-card">
+        <div class="section-title"><span>② 📅 本次訪問資訊</span></div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>實際訪問日期</label>
+            <input type="date" id="visitDate" onchange="calculateDuration(); updateReport();">
+          </div>
+          <div class="form-group">
+            <label>學習次數</label>
+            <select id="visitTimes" onchange="updateReport()">
+              <option value="第一次學習">第一次學習</option>
+              <option value="第二次學習">第二次學習</option>
+              <option value="第三次或以上">第三次或以上</option>
+              <option value="檢定">檢定</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ③ 當日教材資訊 -->
+      <div class="section-card">
+        <div class="section-title">
+          <span>③ 📚 當日教材資訊</span>
+          <button class="btn btn-warning" style="padding:2px 8px; font-size:0.75rem;" onclick="openYModal()"><i class="fa-solid fa-clock"></i> SCT</button>
+        </div>
+        <div class="grid-3">
+          <div class="form-group">
+            <label>科目</label>
+            <select id="subject" onchange="onSubjectOrGradeChange()">
+              <option value="">-- 請選擇科目 --</option>
+              <option value="chi">國語</option>
+              <option value="math">數學</option>
+              <option value="eng">英文</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>教材級數</label>
+            <select id="materialGrade" onchange="onSubjectOrGradeChange()">
+              <option value="">-- 請選擇級數 --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>點讀筆</label>
+            <select id="penUsage" onchange="updateReport()">
+              <option value="">-- 請選擇 --</option>
+              <option value="有">有</option>
+              <option value="無">無</option>
+              <option value="未提供">未提供</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="form-group">
+            <label>開始頁碼</label>
+            <input type="number" id="startPage" placeholder="例：21" oninput="onPageInput()">
+          </div>
+          <div class="form-group">
+            <label>結束頁碼</label>
+            <input type="number" id="endPage" placeholder="例：25" oninput="onPageInput()">
+          </div>
+          <div class="form-group">
+            <label>張數（自動算）</label>
+            <div id="sheetCount" class="readonly-box">--</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>教材單元課題 (連動選擇)</label>
+          <select id="unitSelect" onchange="onUnitSelectChange()">
+            <option value="">-- 請選擇單元 --</option>
+          </select>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label>相當學年</label>
+            <select id="equivalentGrade" onchange="updateReport()">
+              <option value="未提供">未提供</option>
+              <option value="幼未">幼未</option><option value="幼小">幼小</option><option value="幼中">幼中</option><option value="幼大">幼大</option>
+              <option value="小一">小一</option><option value="小二">小二</option><option value="小三">小三</option><option value="小四">小四</option><option value="小五">小五</option><option value="小六">小六</option>
+              <option value="國一">國一</option><option value="國二">國二</option><option value="國三">國三</option>
+              <option value="高一">高一</option><option value="高二">高二</option><option value="高三">高三</option>
+              <option value="大學">大學</option><option value="社會人士">社會人士</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>學習時間 (分鐘)</label>
+            <input type="text" id="actualTime" oninput="updateReport()" placeholder="例：12">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>標準時間 y (分鐘，自動計算)</label>
+          <input type="text" id="standardTime" oninput="updateReport()" placeholder="例：15">
+        </div>
+
+        <div class="form-group">
+          <label>單元學習重點 (自動帶入)</label>
+          <textarea id="unitFocus" oninput="updateReport()"></textarea>
+        </div>
+      </div>
+
+      <!-- ④ 能力與習慣觀察 -->
+      <div class="section-card">
+        <div class="section-title">④ 🧠 能力與習慣觀察</div>
+        <div class="form-group"><label>④-1 作業力</label><textarea id="obsWork" oninput="updateReport()" placeholder="完成時間、是否一頁接一頁、持續書寫、品質..."></textarea></div>
+        <div class="form-group"><label>④-2 學習態度</label><textarea id="obsAttitude" oninput="updateReport()" placeholder="專注度、配合度、是否分心..."></textarea></div>
+        <div class="form-group"><label>④-3 學習習慣</label><textarea id="obsHabit" oninput="updateReport()" placeholder="寫姓名/時間、先讀後寫、自力音讀步驟..."></textarea></div>
+        <div class="form-group"><label>④-4 訂正能力</label><textarea id="obsCorrection" oninput="updateReport()" placeholder="自主訂正、提示後訂正、回A面確認..."></textarea></div>
+        <div class="form-group"><label>④-5 音讀能力</label><textarea id="obsReading" oninput="updateReport()" placeholder="自力音讀 VS 重新聽點讀筆..."></textarea></div>
+      </div>
+
+      <!-- ⑤ 進度與測驗 -->
+      <div class="section-card">
+        <div class="section-title">⑤ 📈 進度與測驗</div>
+        <div class="grid-2">
+          <div class="form-group"><label>近期檢定與預測進度</label><input type="text" id="examProgress" oninput="updateReport()" placeholder="未提供 / 內容"></div>
+          <div class="form-group">
+            <label>進度安排評估</label>
+            <select id="progressEval" onchange="updateReport()">
+              <option value="未提供">未提供</option>
+              <option value="適中">適中</option><option value="太快">太快</option><option value="偏慢">偏慢</option><option value="落後">落後</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ⑥ 老師輔導 -->
+      <div class="section-card">
+        <div class="section-title">⑥ 👩‍🏫 老師輔導</div>
+        <div class="form-group"><label>老師輔導方式</label><textarea id="guidanceDetail" oninput="updateReport()"></textarea></div>
+        <div class="form-group"><label>鼓勵作法 / 退場機制建議</label><textarea id="guidanceEncourage" oninput="updateReport()"></textarea></div>
+      </div>
+
+      <!-- ⑦ 警訊與風險 -->
+      <div class="section-card">
+        <div class="section-title">⑦ 🚨 警訊與風險</div>
+        <div class="form-group"><label>警訊項目</label><textarea id="warningItems" oninput="updateReport()"></textarea></div>
+        <div class="form-group">
+          <label>休退風險評估</label>
+          <select id="riskLevel" onchange="updateReport()">
+            <option value="未提供">未提供</option><option value="低">低</option><option value="中">中</option><option value="高">高</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ⑧ 總結 -->
+      <div class="section-card">
+        <div class="section-title">⑧ 💡 總結與特別觀察</div>
+        <div class="form-group"><label>綜合評語</label><textarea id="specialObs" oninput="updateReport()"></textarea></div>
+      </div>
+
+      <!-- ⑨ 照片／影片 -->
+      <div class="section-card">
+        <div class="section-title">⑨ 📸 照片／影片</div>
+        <div class="grid-2">
+          <div class="form-group"><label>照片連結</label><input type="text" id="photoUrl" oninput="updateReport()" placeholder="未提供 / 網址"></div>
+          <div class="form-group"><label>影片連結</label><input type="text" id="videoUrl" oninput="updateReport()" placeholder="未提供 / 網址"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 右側：即時預覽 -->
+    <div class="preview-pane" id="previewPane">
+      <div class="preview-header">
+        <span style="font-weight:bold;">📄 報告即時預覽</span>
+        <button class="btn btn-secondary" onclick="copyReport()"><i class="fa-solid fa-copy"></i> 複製文字</button>
+      </div>
+      <div class="preview-content" id="reportPreview"></div>
+    </div>
+  </div>
+
+  <button class="float-btn" onclick="toggleMobileView()"><i class="fa-solid fa-eye"></i></button>
+
+  <div id="yModal" class="modal-overlay" onclick="closeYModalOnOverlay(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-clock"></i> KUMON 各科教材標準完成時間 (SCT) 一覽表</h3>
+        <button class="btn btn-secondary" style="padding:2px 8px;" onclick="closeYModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">* 註：SCT 標準完成時間是以「一張教材」為準（含訂正時間）</p>
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <button class="btn btn-primary" style="padding:4px 10px; font-size:0.8rem;" onclick="filterYTable('math')">數學</button>
+          <button class="btn btn-primary" style="padding:4px 10px; font-size:0.8rem; background:#059669;" onclick="filterYTable('chi')">國語</button>
+          <button class="btn btn-primary" style="padding:4px 10px; font-size:0.8rem; background:#d97706;" onclick="filterYTable('eng')">英文</button>
+          <button class="btn btn-secondary" style="padding:4px 10px; font-size:0.8rem;" onclick="filterYTable('all')">顯示全部</button>
+        </div>
+        <table class="y-table">
+          <thead><tr><th>科目</th><th>級數</th><th>內容/單元</th><th>SCT (分/張)</th></tr></thead>
+          <tbody id="yTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">已成功複製到剪貼簿！</div>
+
+  <script>
+    const teachersMap = {
+      "KUMON士林天母教室": "羅懋德老師", "KUMON士林劍潭教室": "張麗珍老師", "KUMON 淡水北新教室": "陳淑貞老師",
+      "KUMON 淡水新市一路教室": "吳尹文老師", "KUMON 基隆愛六路教室": "陳彥妤老師", "KUMON 基隆暖暖教室": "陳麗真老師",
+      "KUMON汐止仁愛教室": "陳桂英老師", "KUMON新店中興德正教室": "吳大宇老師", "KUMON 新莊中港教室": "吳素秋老師",
+      "KUMON新莊昌平教室": "鄧玫芳老師", "KUMON 新莊中正天泉教室": "卓祐琪老師", "KUMON 林口文化三路三民教室": "黃嘉雯老師"
+    };
+
+    const singleSheetSCTMap = {
+      math: { "6A": 1.25, "5A": 1.25, "4A": 1.25, "3A": 1.5, "2A": 1.5, "A": 1.5, "B": 2, "C": 2.5, "D": 3.5, "E": 3.5, "F": 4, "G": 4, "H": 6, "I": 6, "J": 8, "K": 10, "L": 15, "M": 15, "N": 15, "O": 15, "XV": 15, "XM": 15, "XP": 15 },
+      chi: { "7A": 2, "6A": 2, "5A": 3, "4A": 2.5, "3A": 2.5, "2A": 2.5, "AI": 2.5, "AII": 2.5, "BI": 2.5, "BII": 2.5, "CI": 2.5, "CII": 2.5, "D": 3, "E": 3, "F": 3, "G": 7.5, "H": 7.5, "I": 7.5, "J": 10, "K": 10, "L": 10 },
+      eng: { "5A": 1.5, "4A": 1.5, "3A": 2.75, "2A": 2.75, "A": 2.75, "B": 2.75, "C": 2.75, "D": 3.25, "E": 3.25, "F": 3.25, "G": 3.5, "H": 3.5, "I": 3.5, "J": 8, "K": 8, "L": 8, "M": 8, "N": 8, "O": 8 }
+    };
+
+    const yTimeData = [
+      { sub: "math", grade: "6A~4A", content: "數數、認讀、描寫數字", y: "0.5 ~ 2 分鐘" },
+      { sub: "math", grade: "3A~2A", content: "數字順序、加1~加10心算", y: "1 ~ 2 分鐘" },
+      { sub: "math", grade: "A", content: "加減法橫式運算", y: "1 ~ 2 分鐘" },
+      { sub: "math", grade: "B", content: "直式加減法、三位數加減", y: "1 ~ 5 分鐘" },
+      { sub: "math", grade: "C", content: "九九乘法、乘除法直式、有餘數除法", y: "2 ~ 5 分鐘" },
+      { sub: "math", grade: "D", content: "多位數乘除法、約分", y: "2 ~ 5 分鐘" },
+      { sub: "math", grade: "E", content: "分數加減乘除", y: "2 ~ 6 分鐘" },
+      { sub: "math", grade: "F", content: "四則混合、分數小數計算", y: "3 ~ 6 分鐘" },
+      { sub: "math", grade: "G", content: "正負數、代數式、一元一次方程", y: "2 ~ 6 分鐘" },
+      { sub: "math", grade: "H", content: "二元一次聯立、多項式、因式分解", y: "4 ~ 10 分鐘" },
+      { sub: "math", grade: "I", content: "平方根、一元二次方程、二次函數", y: "4 ~ 10 分鐘" },
+      { sub: "math", grade: "J", content: "高階因式分解、虛數、餘式定理", y: "5 ~ 12 分鐘" },
+      { sub: "math", grade: "K~O", content: "高次函數、微積分、向量、矩陣", y: "6 ~ 30 分鐘" },
+
+      { sub: "chi", grade: "7A~4A", content: "字卡、語詞、短語、注音、名詞動詞句型", y: "1 ~ 3 分鐘" },
+      { sub: "chi", grade: "3A~2A", content: "誰什麼、何時何地、讀故事選句子/回答問題", y: "2 ~ 3 分鐘" },
+      { sub: "chi", grade: "AI~AII", content: "閱讀理解、找主語、畫面順序", y: "2 ~ 3 分鐘" },
+      { sub: "chi", grade: "BI~BII", content: "文章閱讀、改寫句子、找變化異同", y: "2 ~ 3 分鐘" },
+      { sub: "chi", grade: "CI~CII", content: "歸納段落、補訊息、5W1H、摘錄要點", y: "2 ~ 3 分鐘" },
+      { sub: "chi", grade: "D~F", content: "題目語、命題化、句式圖、因果關係", y: "2 ~ 4 分鐘" },
+      { sub: "chi", grade: "G~I", content: "縮微作法、單句歸納、概念圖", y: "5 ~ 10 分鐘" },
+      { sub: "chi", grade: "J~L", content: "古典縮微、古文解說引用、詞義概念", y: "6 ~ 16 分鐘" },
+
+      { sub: "eng", grade: "5A~4A", content: "覆誦、字母、單字抄寫/書寫", y: "1 ~ 2 分鐘" },
+      { sub: "eng", grade: "3A~2A", content: "詞組、簡單句子、完成/造句", y: "2 ~ 3.5 分鐘" },
+      { sub: "eng", grade: "A~C", content: "日常對話、讚美、需求、問答", y: "2 ~ 3.5 分鐘" },
+      { sub: "eng", grade: "D~F", content: "句型SVC/SVO/SVM、助動詞、疑問句", y: "2.5 ~ 4 分鐘" },
+      { sub: "eng", grade: "G~I", content: "文法語態、不定詞、被動、關代子句", y: "2.5 ~ 4.5 分鐘" },
+      { sub: "eng", grade: "J~O", content: "原著閱讀、名著賞析、高級詞彙", y: "4 ~ 16 分鐘" }
+    ];
+
+    // 三科完整正版級數與課題資料庫
+    const syllabusData = {
+      "math": {
+        "6A": { "1": {"name": "數一數（到5）1", "focus": "透過數物件和點點，數數到3"}, "21": {"name": "數一數（到5）3", "focus": "透過數物件和點點，數數到5"}, "101": {"name": "念數字（到10）1", "focus": "熟悉10個以內的數量和認讀7以內的數字"} },
+        "5A": { "1": {"name": "念數字(到30）1", "focus": "認讀10以內的數字和數字表"}, "101": {"name": "1到30的數字順序1", "focus": "熟練30以內數字順序"} },
+        "4A": { "1": {"name": "描數字1", "focus": "養成運筆能力"}, "101": {"name": "1到20的數字1", "focus": "寫出1到20數字"} },
+        "3A": { "1": {"name": "1到100的數字1", "focus": "熟練數的順序"}, "71": {"name": "“加1”①", "focus": "加1心算"}, "131": {"name": "“加2”①", "focus": "加2心算"} },
+        "2A": { "1": {"name": "3A複習", "focus": "加法心算基礎"}, "11": {"name": "“加4”①", "focus": "加4心算"}, "171": {"name": "“加1∼加10”①", "focus": "總複習10以內加法"} },
+        "A": { "1": {"name": "加法1", "focus": "1位數+1位數"}, "81": {"name": "減法1", "focus": "減1運算"} },
+        "B": { "1": {"name": "加法複習", "focus": "兩位數加法"}, "11": {"name": "和為100加法", "focus": "直式加法"}, "121": {"name": "二位數減法", "focus": "借位減法"} },
+        "C": { "1": {"name": "乘除法準備", "focus": "加減法複習"}, "11": {"name": "九九乘法", "focus": "熟記九九乘法"}, "121": {"name": "有餘數除法", "focus": "除法商與餘數"} },
+        "D": { "1": {"name": "乘除複習", "focus": "C教材複習"}, "11": {"name": "二位數乘法", "focus": "直式乘法"}, "81": {"name": "二位數除法", "focus": "試商與直式除法"} },
+        "E": { "1": {"name": "約分通分", "focus": "分數基礎"}, "11": {"name": "分數加法", "focus": "同分母異分母加法"}, "141": {"name": "分數乘除", "focus": "分數乘除法"} },
+        "F": { "1": {"name": "四則運算", "focus": "分數小數四則"}, "131": {"name": "分數和小數", "focus": "小數化分數與計算"} },
+        "G": { "1": {"name": "正負數", "focus": "正負數四則"}, "101": {"name": "代數式", "focus": "代入與化簡"}, "161": {"name": "一元一次方程", "focus": "移項與求解"} },
+        "H": { "21": {"name": "聯立方程", "focus": "加減消去法"}, "151": {"name": "因式分解", "focus": "公式法因式分解"} },
+        "I": { "21": {"name": "平方根", "focus": "根號化簡"}, "51": {"name": "一元二次方程", "focus": "公式解與因式分解"}, "101": {"name": "一次函數", "focus": "圖形與斜率"} },
+        "J": { "1": {"name": "高階多項式", "focus": "展開與因式分解"}, "111": {"name": "虛數", "focus": "複數二次方程"}, "161": {"name": "餘式定理", "focus": "除法原理與餘式"} },
+        "K": { "21": {"name": "二次函數", "focus": "頂點與圖形"}, "111": {"name": "高次方程", "focus": "高次不等式"}, "171": {"name": "指數對數", "focus": "指數律與對數"} },
+        "L": { "41": {"name": "導函數", "focus": "極限與微分"}, "111": {"name": "微積分", "focus": "定積分與面積體積"} },
+        "M": { "1": {"name": "點與直線", "focus": "距離與斜率"}, "81": {"name": "三角函數", "focus": "廣義角與三角比"} },
+        "N": { "1": {"name": "數列級數", "focus": "等差等比"}, "141": {"name": "微分學", "focus": "連鎖律與高階導數"} },
+        "O": { "1": {"name": "切線法線", "focus": "隱函數微分"}, "91": {"name": "定積分應用", "focus": "旋轉體與長度"} },
+        "XV": { "1": {"name": "平面向量", "focus": "內積與正射影"}, "41": {"name": "空間向量", "focus": "空間坐標與平面"} },
+        "XM": { "1": {"name": "矩陣", "focus": "矩陣加減乘法"}, "41": {"name": "線性變換", "focus": "旋轉鏡射變換"} },
+        "XP": { "1": {"name": "排列組合", "focus": "古典機率與二項分布"} }
+      },
+      "chi": {
+        "7A": { "1": {"name": "國字卡①", "focus": "認識語詞與聽讀"}, "31": {"name": "語詞①", "focus": "聽讀語詞"}, "161": {"name": "語詞故事", "focus": "短文閱讀"} },
+        "6A": { "1": {"name": "短語①", "focus": "動詞+名詞"}, "101": {"name": "短句①", "focus": "主語+謂語"}, "171": {"name": "短句故事", "focus": "長單句認讀"} },
+        "5A": { "1": {"name": "注音符號①", "focus": "認讀37個注音"}, "51": {"name": "結合韻聲調", "focus": "拼音認讀"}, "101": {"name": "短句長句", "focus": "閱讀基礎"} },
+        "4A": { "1": {"name": "拼寫語詞", "focus": "注音拼寫"}, "61": {"name": "名詞和句子", "focus": "名詞功能"}, "131": {"name": "動詞和句子", "focus": "動詞表達"}, "161": {"name": "形容詞句子", "focus": "形容詞修飾"} },
+        "3A": { "1": {"name": "誰、什麼①", "focus": "人物與事物成分"}, "61": {"name": "怎麼樣做什麼", "focus": "狀態與動作謂語"}, "131": {"name": "何時、何地", "focus": "時間地點狀語"} },
+        "2A": { "1": {"name": "讀故事選插圖", "focus": "圖文理解"}, "61": {"name": "讀故事選句子", "focus": "句意對應"}, "131": {"name": "讀故事答題", "focus": "擷取訊息問答"} },
+        "AI": { "1": {"name": "Ａ的閱讀①", "focus": "短文填空理解"}, "131": {"name": "找主語①", "focus": "精準找出主語"} },
+        "AII": { "11": {"name": "畫面①", "focus": "建立故事畫面感"}, "101": {"name": "故事順序①", "focus": "事件先後順序"} },
+        "BI": { "1": {"name": "Ｂ的閱讀①", "focus": "中篇段落大意"}, "131": {"name": "改寫句子①", "focus": "同義句改寫"} },
+        "BII": { "11": {"name": "找變化不同①", "focus": "前後差異對比"}, "101": {"name": "相同與不同①", "focus": "異同點比較"} },
+        "CI": { "1": {"name": "C的閱讀①", "focus": "歸納段落主旨"}, "131": {"name": "補訊息①", "focus": "脈絡補充訊息"} },
+        "CII": { "11": {"name": "摘錄要點①", "focus": "重點劃記摘要"}, "101": {"name": "５Ｗ１Ｈ①", "focus": "文章架構分析"} },
+        "D": { "1": {"name": "題目語1", "focus": "分析題目與主題"}, "51": {"name": "命題化1", "focus": "歸納命題句"}, "101": {"name": "話題句1", "focus": "找出話題句"}, "151": {"name": "句式圖1", "focus": "段落結構圖"} },
+        "E": { "1": {"name": "連接詞1", "focus": "邏輯轉承語"}, "61": {"name": "段落連接1", "focus": "承上啟下分析"}, "141": {"name": "因果關係1", "focus": "原因結果邏輯鏈"} },
+        "F": { "1": {"name": "指示對象1", "focus": "指示代詞指稱"}, "51": {"name": "解釋與分析1", "focus": "概念例證分析"}, "101": {"name": "段落成分1", "focus": "論點論據拆解"} },
+        "G": { "1": {"name": "縮微作法1", "focus": "濃縮要旨技巧"}, "71": {"name": "單句歸納1", "focus": "精煉單一核心句"}, "131": {"name": "話題與陳述", "focus": "話題與陳述分清"} },
+        "H": { "1": {"name": "概念關係圖1", "focus": "對比因果包含圖"}, "71": {"name": "關注表現1", "focus": "修辭強調效果"}, "131": {"name": "單一段落縮微", "focus": "精準縮微摘要"} },
+        "I": { "1": {"name": "話題轉換縮微", "focus": "多話題摘要"}, "71": {"name": "兼顧前後文", "focus": "全文脈絡縮微"}, "131": {"name": "縮微式讀解", "focus": "深層讀解答題"} },
+        "J": { "1": {"name": "古典的縮微1", "focus": "古文縮微理解"}, "71": {"name": "古典解說1", "focus": "評論與解說分析"}, "141": {"name": "古典引用1", "focus": "引用名句用意"} },
+        "K": { "1": {"name": "詞義概念1", "focus": "抽象詞彙剖析"}, "71": {"name": "觀點依據1", "focus": "觀點與論據分析"}, "141": {"name": "論點展開1", "focus": "論點推進過程"} },
+        "L": { "1": {"name": "著眼點1", "focus": "思考切入角度"}, "71": {"name": "驗證1", "focus": "論證嚴密性評估"}, "141": {"name": "呼應1", "focus": "首尾呼應與連貫"} }
+      },
+      "eng": {
+        "5A": { "1": {"name": "覆誦練習1", "focus": "培養英文音感"}, "71": {"name": "音讀練習1", "focus": "自力音讀能力"}, "131": {"name": "字母練習1", "focus": "26字母學習"} },
+        "4A": { "1": {"name": "單字抄寫", "focus": "形音義結合"}, "81": {"name": "單字書寫", "focus": "聽音拼寫單字"} },
+        "3A": { "1": {"name": "詞組練習", "focus": "複數與冠詞詞組"}, "51": {"name": "句子練習", "focus": "主詞+動詞句型"} },
+        "2A": { "1": {"name": "完成語詞", "focus": "填空寫出詞組"}, "51": {"name": "完成句子", "focus": "整句書寫練習"} },
+        "A": { "1": {"name": "自我介紹", "focus": "對話朗讀與臨摹"}, "51": {"name": "描述人物", "focus": "人物關係與描述"} },
+        "B": { "1": {"name": "命令與喜好", "focus": "表達喜好與命令"}, "101": {"name": "能力與擁有", "focus": "表達能力與時間"} },
+        "C": { "1": {"name": "警告與請求", "focus": "警告勸告請求"}, "51": {"name": "天氣與位置", "focus": "談論天氣與方位"} },
+        "D": { "1": {"name": "句型SVC", "focus": "主詞+動詞+補語"}, "101": {"name": "句型SVO", "focus": "主詞+動詞+受詞"} },
+        "E": { "1": {"name": "句型SVM", "focus": "主詞+動詞+修飾語"}, "101": {"name": "句型SVCM", "focus": "補語與修飾語"} },
+        "F": { "1": {"name": "助動詞句型", "focus": "can/will/must/should"}, "151": {"name": "疑問句型", "focus": "W開頭疑問句"} },
+        "G": { "1": {"name": "名詞與代名詞", "focus": "單複數與人稱代詞"}, "61": {"name": "時態過去式", "focus": "動詞過去式與疑問句"} },
+        "H": { "1": {"name": "動名詞與不定詞", "focus": "Phrases 1-6"}, "71": {"name": "被動語態與完成式", "focus": "Voice & Tense"} },
+        "I": { "1": {"name": "關係代名詞子句", "focus": "who/which/that/whose"}, "51": {"name": "條件句與假設語氣", "focus": "if條件句與wish"} },
+        "J": { "1": {"name": "名著閱讀1", "focus": "英國傳奇與綠野仙蹤"}, "171": {"name": "金銀島名著", "focus": "長篇文學閱讀"} },
+        "K": { "1": {"name": "專題閱讀1", "focus": "奧林匹克與李伯大夢"}, "121": {"name": "海蒂與女巫", "focus": "原著長篇閱讀"} },
+        "L": { "1": {"name": "麥琪的禮物", "focus": "歐亨利短篇小說"}, "101": {"name": "八十天環遊地球", "focus": "凡爾納科幻名著"} },
+        "M": { "1": {"name": "爵士樂與牙膏百萬富翁", "focus": "商業與文化小說"}, "101": {"name": "瑪蒂達與安妮日記", "focus": "達爾名著與歷史日記"} },
+        "N": { "1": {"name": "足球夢與雷鳴同在", "focus": "澳洲與體育小說"}, "101": {"name": "達文西與我的人生故事", "focus": "傳記與名著閱讀"} },
+        "O": { "1": {"name": "改邪歸正與人性枷鎖", "focus": "毛姆與歐亨利名著"}, "161": {"name": "遠大前程", "focus": "狄更斯名著大成考評"} }
+      }
+    };
+
+    window.onload = function() {
+      document.getElementById('visitDate').valueAsDate = new Date();
+      const yearSel = document.getElementById('enrollYear');
+      const curY = new Date().getFullYear();
+      for(let y=curY; y>=curY-15; y--) {
+        const opt = document.createElement('option');
+        opt.value = y; opt.textContent = y + '年';
+        yearSel.appendChild(opt);
+      }
+      renderYTable('all');
+      updateReport();
+    };
+
+    function openYModal() { document.getElementById('yModal').style.display = 'flex'; }
+    function closeYModal() { document.getElementById('yModal').style.display = 'none'; }
+    function closeYModalOnOverlay(e) { if(e.target.id === 'yModal') closeYModal(); }
+
+    function renderYTable(filterSub) {
+      const tbody = document.getElementById('yTableBody');
+      tbody.innerHTML = '';
+      const subMap = { math: "數學", chi: "國語", eng: "英文" };
+      yTimeData.forEach(item => {
+        if(filterSub === 'all' || item.sub === filterSub) {
+          tbody.innerHTML += `<tr>
+            <td><strong>${subMap[item.sub]}</strong></td>
+            <td>${item.grade}</td>
+            <td>${item.content}</td>
+            <td><strong style="color:var(--primary-color);">${item.y}</strong></td>
+          </tr>`;
+        }
+      });
+    }
+
+    function filterYTable(sub) { renderYTable(sub); }
+
+    function switchMobileTab(tab) {
+      const f = document.getElementById('formPane');
+      const p = document.getElementById('previewPane');
+      const btnF = document.getElementById('btnTabForm');
+      const btnP = document.getElementById('btnTabPreview');
+
+      if(tab === 'form') {
+        f.classList.remove('hidden'); p.classList.remove('active');
+        btnF.classList.add('active'); btnP.classList.remove('active');
+      } else {
+        f.classList.add('hidden'); p.classList.add('active');
+        btnF.classList.remove('active'); btnP.classList.add('active');
+      }
+    }
+
+    function toggleMobileView() {
+      const p = document.getElementById('previewPane');
+      if(p.classList.contains('active')) switchMobileTab('form');
+      else switchMobileTab('preview');
+    }
+
+    function onClassroomChange() {
+      const cls = document.getElementById('classroom').value;
+      document.getElementById('teacherName').textContent = teachersMap[cls] || '--';
+      updateReport();
+    }
+
+    // 當選擇科目時，動態帶出該科目的所有級數
+    function onSubjectOrGradeChange() {
+      const s = document.getElementById('subject').value;
+      const gSel = document.getElementById('materialGrade');
+      
+      // 保存當前選取的級數
+      const curGrade = gSel.value;
+      gSel.innerHTML = '<option value="">-- 請選擇級數 --</option>';
+
+      if(s && syllabusData[s]) {
+        Object.keys(syllabusData[s]).forEach(g => {
+          const opt = document.createElement('option');
+          opt.value = g; opt.textContent = g;
+          gSel.appendChild(opt);
+        });
+      }
+
+      // 若剛剛有選過級數則還原
+      if (curGrade && syllabusData[s] && syllabusData[s][curGrade]) {
+        gSel.value = curGrade;
+      }
+
+      updateUnitList();
+      autoCalculateSCT();
+      updateReport();
+    }
+
+    function updateUnitList() {
+      const s = document.getElementById('subject').value;
+      const g = document.getElementById('materialGrade').value;
+      const uSel = document.getElementById('unitSelect');
+      uSel.innerHTML = '<option value="">-- 請選擇單元 --</option>';
+      if(s && g && syllabusData[s] && syllabusData[s][g]) {
+        const units = syllabusData[s][g];
+        Object.keys(units).sort((a,b)=>parseInt(a)-parseInt(b)).forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p; opt.textContent = units[p].name;
+          uSel.appendChild(opt);
+        });
+      }
+    }
+
+    function onUnitSelectChange() {
+      const p = parseInt(document.getElementById('unitSelect').value);
+      if(!p) return;
+      document.getElementById('startPage').value = p;
+      document.getElementById('endPage').value = p + 4;
+      onPageInput();
+    }
+
+    function onPageInput() {
+      const s = parseInt(document.getElementById('startPage').value);
+      const e = parseInt(document.getElementById('endPage').value);
+      const div = document.getElementById('sheetCount');
+      if(!isNaN(s) && !isNaN(e) && e>=s) {
+        div.textContent = (e-s+1) + '張';
+      } else {
+        div.textContent = '--';
+      }
+
+      findFocus();
+      autoCalculateSCT();
+      updateReport();
+    }
+
+    function autoCalculateSCT() {
+      const sb = document.getElementById('subject').value;
+      const mg = document.getElementById('materialGrade').value;
+      const s = parseInt(document.getElementById('startPage').value);
+      const e = parseInt(document.getElementById('endPage').value);
+      const stdInput = document.getElementById('standardTime');
+
+      if (sb && mg && !isNaN(s) && !isNaN(e) && e >= s) {
+        const sheets = e - s + 1;
+        if (singleSheetSCTMap[sb] && singleSheetSCTMap[sb][mg]) {
+          const perSheetTime = singleSheetSCTMap[sb][mg];
+          const totalY = Math.round(sheets * perSheetTime * 10) / 10;
+          stdInput.value = totalY;
+        }
+      }
+    }
+
+    function findFocus() {
+      const sb = document.getElementById('subject').value;
+      const mg = document.getElementById('materialGrade').value;
+      const sp = parseInt(document.getElementById('startPage').value);
+      const focusArea = document.getElementById('unitFocus');
+
+      if(!sb || !mg || isNaN(sp) || !syllabusData[sb] || !syllabusData[sb][mg]) return;
+      const units = syllabusData[sb][mg];
+      const keys = Object.keys(units).map(x=>parseInt(x)).sort((a,b)=>a-b);
+      let matched = null;
+      for(let k of keys) {
+        if(sp >= k) matched = k;
+        else break;
+      }
+      if(matched && units[matched]) {
+        focusArea.value = `${units[matched].name}（${units[matched].focus}）`;
+      }
+    }
+
+    function calculateDuration() {
+      const y = document.getElementById('enrollYear').value;
+      const m = document.getElementById('enrollMonth').value;
+      const vd = document.getElementById('visitDate').value;
+      const div = document.getElementById('studyPeriod');
+      if(!y || !m || !vd) { div.textContent = '--'; return; }
+
+      const d1 = new Date(parseInt(y), parseInt(m)-1, 1);
+      const d2 = new Date(vd);
+      let mos = (d2.getFullYear()-d1.getFullYear())*12 + (d2.getMonth()-d1.getMonth());
+      if(mos < 0) mos = 0;
+      if(mos >= 12) {
+        const yrs = Math.floor(mos/12);
+        const rem = mos % 12;
+        div.textContent = rem > 0 ? `約${yrs}年${rem}個月` : `約${yrs}年`;
+      } else div.textContent = `約${mos}個月`;
+    }
+
+    function updateReport() {
+      const name = document.getElementById('studentName').value || '未填寫';
+      const grade = document.getElementById('studentGrade').value || '未填寫';
+      const subjMap = { chi:"國語", math:"數學", eng:"英文" };
+      const subjVal = document.getElementById('subject').value;
+      const subj = subjMap[subjVal] || '未選擇';
+      const mGrade = document.getElementById('materialGrade').value || '未選擇';
+      const sp = document.getElementById('startPage').value;
+      const ep = document.getElementById('endPage').value;
+      const pRange = (sp && ep) ? `${sp}～${ep}` : '';
+
+      const cls = document.getElementById('classroom').value || '未提供';
+      const tName = document.getElementById('teacherName').textContent || '未提供';
+      const vd = document.getElementById('visitDate').value ? document.getElementById('visitDate').value.replace(/-/g,'/') : '未提供';
+      const ey = document.getElementById('enrollYear').value;
+      const em = document.getElementById('enrollMonth').value;
+      const eStr = (ey && em) ? `${ey}/${em}` : '未提供';
+      const period = document.getElementById('studyPeriod').textContent !== '--' ? document.getElementById('studyPeriod').textContent : '未提供';
+      const days = document.getElementById('classDays').value || '未提供';
+
+      const times = document.getElementById('visitTimes').value;
+      const sheets = document.getElementById('sheetCount').textContent !== '--' ? document.getElementById('sheetCount').textContent : '未提供';
+      const eqGrade = document.getElementById('equivalentGrade').value;
+      const actTime = document.getElementById('actualTime').value;
+      const stdTime = document.getElementById('standardTime').value;
+      const pen = document.getElementById('penUsage').value || '未選擇';
+
+      let timeStr = '未提供';
+      if(actTime) timeStr = stdTime ? `${actTime}分鐘（y＝${stdTime}分鐘）` : `${actTime}分鐘`;
+
+      const focus = document.getElementById('unitFocus').value;
+      const obsWork = document.getElementById('obsWork').value || '未提供';
+      const obsAtt = document.getElementById('obsAttitude').value || '未提供';
+      const obsHab = document.getElementById('obsHabit').value || '未提供';
+      const obsCor = document.getElementById('obsCorrection').value || '未提供';
+      const obsRead = document.getElementById('obsReading').value || '未提供';
+
+      const exam = document.getElementById('examProgress').value || '未提供';
+      const evalP = document.getElementById('progressEval').value;
+      const gDetail = document.getElementById('guidanceDetail').value || '未提供';
+      const gEnc = document.getElementById('guidanceEncourage').value || '未提供';
+      const warn = document.getElementById('warningItems').value || '未提供';
+      const risk = document.getElementById('riskLevel').value;
+      const spec = document.getElementById('specialObs').value || '未提供';
+      const photo = document.getElementById('photoUrl').value || '未提供';
+      const video = document.getElementById('videoUrl').value || '未提供';
+
+      const txt = `📘 ${name}｜${grade}｜${subj} ${mGrade}${pRange}
+
+📅 【教室訪問資訊】
+
+實際訪問日期：${vd}
+教室：${cls}
+老師姓名：${tName}
+學生姓名與學年：${name}／${grade}
+入學日期／學習期間：${eStr}／${period}
+到教室時間：${days}
+
+📚 【當日學習表現】
+
+當天教材與張數：${subj} ${mGrade}${pRange}，${sheets}
+教材單元：（相當學年）：${focus ? focus + ' / ' : ''}相当學年：${eqGrade}
+學習次數：${times}
+花費時間與分數：${timeStr}
+點讀筆購買：${pen}
+
+🧠 【能力與習慣評估】
+
+作業力：
+${obsWork}
+
+學習態度：
+${obsAtt}
+
+學習習慣：
+${obsHab}
+
+訂正能力：
+${obsCor}
+
+音讀能力：
+${obsRead}
+
+📈 【進度與測驗狀態】
+
+目前教材與相當學年：${subj} ${mGrade}${pRange}／相當學年：${eqGrade}
+近期檢定與預測進度：${exam}
+進度安排評估：${evalP}
+
+👩‍🏫 【老師輔導與風險評估】
+
+老師輔導方式：
+${gDetail}
+
+鼓勵作法：
+${gEnc}
+
+警訊項目：
+${warn}
+
+休退風險評估：${risk}
+
+💡 【總結與附件】
+
+綜合評語：
+${spec}
+
+照片連結：${photo}
+影片連結：${video}`;
+
+      document.getElementById('reportPreview').textContent = txt;
+    }
+
+    function copyReport() {
+      const t = document.getElementById('reportPreview').textContent;
+      navigator.clipboard.writeText(t).then(() => {
+        const toast = document.getElementById('toast');
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
