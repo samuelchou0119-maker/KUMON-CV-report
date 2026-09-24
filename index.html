@@ -274,6 +274,18 @@
       .form-pane.hidden { display: none; }
       .float-btn { display: flex; }
     }
+
+    @media (max-width: 500px) {
+      /* 縮小雙欄的間距 */
+      .grid-2, .grid-3 { 
+        gap: 6px; 
+      }
+      /* 縮小輸入框字體與左右內距，讓日期能完整顯示 */
+      input[type="text"], input[type="number"], input[type="date"], select, textarea {
+        padding: 8px 4px;
+        font-size: 0.8rem;
+      }
+    }
   </style>
 </head>
 <body>
