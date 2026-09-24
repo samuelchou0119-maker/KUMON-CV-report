@@ -247,9 +247,6 @@
 
   <header>
     <h1><i class="fa-solid fa-file-pen"></i> KUMON 學生訪問報告</h1>
-    <div class="header-btns">
-      <button class="btn btn-primary" onclick="copyReport()"><i class="fa-solid fa-copy"></i> 複製內文</button>
-    </div>
   </header>
 
   <div class="mobile-tabs">
@@ -358,7 +355,6 @@
       <div class="section-card">
         <div class="section-title">
           <span>③ 📚 當日教材資訊</span>
-          <!-- 修改處：改成直接點擊開啟雲端連結 -->
           <button class="btn btn-warning" style="padding:2px 8px; font-size:0.75rem;" onclick="window.open('https://drive.google.com/drive/folders/1dLfW4JsctSO4Z5nZPed9xSSutnW3o86y?usp=drive_link', '_blank')"><i class="fa-solid fa-clock"></i> SCT</button>
         </div>
         <div class="grid-3">
@@ -429,7 +425,6 @@
         </div>
 
         <div class="form-group">
-          <!-- 修改處：移除標題的「自動計算」字樣 -->
           <label>標準時間 y (分鐘)</label>
           <input type="text" id="standardTime" oninput="updateReport()" placeholder="例：15">
         </div>
