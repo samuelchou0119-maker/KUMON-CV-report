@@ -145,6 +145,10 @@
       display: flex;
       align-items: center;
     }
+    
+    #visitTimes {
+      height: 38px;
+    }
 
     .preview-header {
       padding: 12px 16px;
@@ -216,55 +220,6 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
 
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(3px);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-card {
-      background: #fff;
-      width: 95%;
-      max-width: 800px;
-      max-height: 85vh;
-      border-radius: 12px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 10px;
-      margin-bottom: 12px;
-    }
-
-    .modal-body { overflow-y: auto; flex: 1; }
-
-    table.y-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-      margin-top: 8px;
-    }
-
-    table.y-table th, table.y-table td {
-      border: 1px solid var(--border-color);
-      padding: 8px 10px;
-      text-align: left;
-    }
-
-    table.y-table th { background: #f1f5f9; color: var(--secondary-color); font-weight: 700; }
-
     @media (max-width: 850px) {
       .mobile-tabs { display: flex; }
       .main-container { flex-direction: column; overflow: hidden; }
@@ -276,15 +231,9 @@
     }
 
     @media (max-width: 500px) {
-      .grid-2, .grid-3 {
-        gap: 6px;
-      }
-      .grid-2 {
-        grid-template-columns: 1fr 1fr; 
-      }
-      .grid-3 {
-        grid-template-columns: 1fr 1fr 1fr;
-      }
+      .grid-2, .grid-3 { gap: 6px; }
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+      .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
       input, select, textarea, .readonly-box {
         min-width: 0 !important; 
         width: 100%;
@@ -409,7 +358,8 @@
       <div class="section-card">
         <div class="section-title">
           <span>③ 📚 當日教材資訊</span>
-          <button class="btn btn-warning" style="padding:2px 8px; font-size:0.75rem;" onclick="openYModal()"><i class="fa-solid fa-clock"></i> SCT</button>
+          <!-- 修改處：改成直接點擊開啟雲端連結 -->
+          <button class="btn btn-warning" style="padding:2px 8px; font-size:0.75rem;" onclick="window.open('https://drive.google.com/drive/folders/1dLfW4JsctSO4Z5nZPed9xSSutnW3o86y?usp=drive_link', '_blank')"><i class="fa-solid fa-clock"></i> SCT</button>
         </div>
         <div class="grid-3">
           <div class="form-group">
@@ -479,7 +429,8 @@
         </div>
 
         <div class="form-group">
-          <label>標準時間 y (分鐘，自動計算)</label>
+          <!-- 修改處：移除標題的「自動計算」字樣 -->
+          <label>標準時間 y (分鐘)</label>
           <input type="text" id="standardTime" oninput="updateReport()" placeholder="例：15">
         </div>
 
@@ -562,28 +513,6 @@
 
   <button class="float-btn" onclick="toggleMobileView()"><i class="fa-solid fa-eye"></i></button>
 
-  <div id="yModal" class="modal-overlay" onclick="closeYModalOnOverlay(event)">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3><i class="fa-solid fa-clock"></i> KUMON 各科教材標準完成時間 (SCT) 一覽表</h3>
-        <button class="btn btn-secondary" style="padding:2px 8px;" onclick="closeYModal()">✕</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">* 註：SCT 標準完成時間是以「一張教材」為準（含訂正時間）</p>
-        <div style="display:flex; gap:8px; margin-bottom:12px;">
-          <button class="btn btn-primary" style="padding:4px 10px; font-size:0.8rem;" onclick="filterYTable('math')">數學</button>
-          <button class="btn btn-primary" style="padding:4px 10px; font-size:0.8rem; background:#059669;" onclick="filterYTable('chi')">國語</button>
-          <button class="btn btn-primary" style="padding:4px 10px; font-size:0.8rem; background:#d97706;" onclick="filterYTable('eng')">英文</button>
-          <button class="btn btn-secondary" style="padding:4px 10px; font-size:0.8rem;" onclick="filterYTable('all')">顯示全部</button>
-        </div>
-        <table class="y-table">
-          <thead><tr><th>科目</th><th>級別</th><th>內容/單元</th><th>SCT (分/張)</th></tr></thead>
-          <tbody id="yTableBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
   <div id="toast" class="toast">已成功複製到剪貼簿！</div>
 
   <script>
@@ -594,7 +523,6 @@
       "KUMON新莊昌平教室": "鄧玫芳老師", "KUMON 新莊中正天泉教室": "卓祐琪老師", "KUMON 林口文化三路三民教室": "黃嘉雯老師"
     };
 
-    // 新增：教材級別自動對應學年
     const equivalentGradeMap = {
       "7A": "幼未", "6A": "幼未", "5A": "幼未",
       "4A": "幼小",
@@ -615,45 +543,6 @@
       "XV": "大學", "XM": "大學", "XP": "大學"
     };
 
-    const singleSheetSCTMap = {
-      math: { "6A": 1.25, "5A": 1.25, "4A": 1.25, "3A": 1.5, "2A": 1.5, "A": 1.5, "B": 2, "C": 2.5, "D": 3.5, "E": 3.5, "F": 4, "G": 4, "H": 6, "I": 6, "J": 8, "K": 10, "L": 15, "M": 15, "N": 15, "O": 15, "XV": 15, "XM": 15, "XP": 15 },
-      chi: { "7A": 2, "6A": 2, "5A": 3, "4A": 2.5, "3A": 2.5, "2A": 2.5, "AI": 2.5, "AII": 2.5, "BI": 2.5, "BII": 2.5, "CI": 2.5, "CII": 2.5, "D": 3, "E": 3, "F": 3, "G": 7.5, "H": 7.5, "I": 7.5, "J": 10, "K": 10, "L": 10 },
-      eng: { "5A": 1.5, "4A": 1.5, "3A": 2.75, "2A": 2.75, "A": 2.75, "B": 2.75, "C": 2.75, "D": 3.25, "E": 3.25, "F": 3.25, "G": 3.5, "H": 3.5, "I": 3.5, "J": 8, "K": 8, "L": 8, "M": 8, "N": 8, "O": 8 }
-    };
-
-    const yTimeData = [
-      { sub: "math", grade: "6A~4A", content: "數數、認讀、描寫數字", y: "0.5 ~ 2 分鐘" },
-      { sub: "math", grade: "3A~2A", content: "數字順序、加1~加10心算", y: "1 ~ 2 分鐘" },
-      { sub: "math", grade: "A", content: "加減法橫式運算", y: "1 ~ 2 分鐘" },
-      { sub: "math", grade: "B", content: "直式加減法、三位數加減", y: "1 ~ 5 分鐘" },
-      { sub: "math", grade: "C", content: "九九乘法、乘除法直式、有餘數除法", y: "2 ~ 5 分鐘" },
-      { sub: "math", grade: "D", content: "多位數乘除法、約分", y: "2 ~ 5 分鐘" },
-      { sub: "math", grade: "E", content: "分數加減乘除", y: "2 ~ 6 分鐘" },
-      { sub: "math", grade: "F", content: "四則混合、分數小數計算", y: "3 ~ 6 分鐘" },
-      { sub: "math", grade: "G", content: "正負數、代數式、一元一次方程", y: "2 ~ 6 分鐘" },
-      { sub: "math", grade: "H", content: "二元一次聯立、多項式、因式分解", y: "4 ~ 10 分鐘" },
-      { sub: "math", grade: "I", content: "平方根、一元二次方程、二次函數", y: "4 ~ 10 分鐘" },
-      { sub: "math", grade: "J", content: "高階因式分解、虛數、餘式定理", y: "5 ~ 12 分鐘" },
-      { sub: "math", grade: "K~O", content: "高次函數、微積分、向量、矩陣", y: "6 ~ 30 分鐘" },
-
-      { sub: "chi", grade: "7A~4A", content: "字卡、語詞、短語、注音、名詞動詞句型", y: "1 ~ 3 分鐘" },
-      { sub: "chi", grade: "3A~2A", content: "誰什麼、何時何地、讀故事選句子/回答問題", y: "2 ~ 3 分鐘" },
-      { sub: "chi", grade: "AI~AII", content: "閱讀理解、找主語、畫面順序", y: "2 ~ 3 分鐘" },
-      { sub: "chi", grade: "BI~BII", content: "文章閱讀、改寫句子、找變化異同", y: "2 ~ 3 分鐘" },
-      { sub: "chi", grade: "CI~CII", content: "歸納段落、補訊息、5W1H、摘錄要點", y: "2 ~ 3 分鐘" },
-      { sub: "chi", grade: "D~F", content: "題目語、命題化、句式圖、因果關係", y: "2 ~ 4 分鐘" },
-      { sub: "chi", grade: "G~I", content: "縮微作法、單句歸納、概念圖", y: "5 ~ 10 分鐘" },
-      { sub: "chi", grade: "J~L", content: "古典縮微、古文解說引用、詞義概念", y: "6 ~ 16 分鐘" },
-
-      { sub: "eng", grade: "5A~4A", content: "覆誦、字母、單字抄寫/書寫", y: "1 ~ 2 分鐘" },
-      { sub: "eng", grade: "3A~2A", content: "詞組、簡單句子、完成/造句", y: "2 ~ 3.5 分鐘" },
-      { sub: "eng", grade: "A~C", content: "日常對話、讚美、需求、問答", y: "2 ~ 3.5 分鐘" },
-      { sub: "eng", grade: "D~F", content: "句型SVC/SVO/SVM、助動詞、疑問句", y: "2.5 ~ 4 分鐘" },
-      { sub: "eng", grade: "G~I", content: "文法語態、不定詞、被動、關代子句", y: "2.5 ~ 4.5 分鐘" },
-      { sub: "eng", grade: "J~O", content: "原著閱讀、名著賞析、高級詞彙", y: "4 ~ 16 分鐘" }
-    ];
-
-    // 三科完整正版級別與課題資料庫
     const syllabusData = {
       "math": {
         "6A": { "1": {"name": "數一數（到5）1", "focus": "透過數物件和點點，數數到3"}, "21": {"name": "數一數（到5）3", "focus": "透過數物件和點點，數數到5"}, "101": {"name": "念數字（到10）1", "focus": "熟悉10個以內的數量和認讀7以內的數字"} },
@@ -695,7 +584,7 @@
         "CII": { "11": {"name": "摘錄要點①", "focus": "重點劃記摘要"}, "101": {"name": "５Ｗ１Ｈ①", "focus": "文章架構分析"} },
         "D": { "1": {"name": "題目語1", "focus": "分析題目與主題"}, "51": {"name": "命題化1", "focus": "歸納命題句"}, "101": {"name": "話題句1", "focus": "找出話題句"}, "151": {"name": "句式圖1", "focus": "段落結構圖"} },
         "E": { "1": {"name": "連接詞1", "focus": "邏輯轉承語"}, "61": {"name": "段落連接1", "focus": "承上啟下分析"}, "141": {"name": "因果關係1", "focus": "原因結果邏輯鏈"} },
-        "F": { "1": {"name": "指示對象1", "focus": "指示代詞指稱"}, "51": {"name": "解釋與分析1", "focus": "概念例證分析"}, "101": {"name": "段落成分1", "focus": "論點論據拆解"} },
+        "F": { "1": {"name": "指示對象1", "focus": "指示代詞指称"}, "51": {"name": "解釋與分析1", "focus": "概念例證分析"}, "101": {"name": "段落成分1", "focus": "論點論據拆解"} },
         "G": { "1": {"name": "縮微作法1", "focus": "濃縮要旨技巧"}, "71": {"name": "單句歸納1", "focus": "精煉單一核心句"}, "131": {"name": "話題與陳述", "focus": "話題與陳述分清"} },
         "H": { "1": {"name": "概念關係圖1", "focus": "對比因果包含圖"}, "71": {"name": "關注表現1", "focus": "修辭強調效果"}, "131": {"name": "單一段落縮微", "focus": "精準縮微摘要"} },
         "I": { "1": {"name": "話題轉換縮微", "focus": "多話題摘要"}, "71": {"name": "兼顧前後文", "focus": "全文脈絡縮微"}, "131": {"name": "縮微式讀解", "focus": "深層讀解答題"} },
@@ -735,31 +624,8 @@
         opt.value = y; opt.textContent = y + '年';
         yearSel.appendChild(opt);
       }
-      renderYTable('all');
       updateReport();
     };
-
-    function openYModal() { document.getElementById('yModal').style.display = 'flex'; }
-    function closeYModal() { document.getElementById('yModal').style.display = 'none'; }
-    function closeYModalOnOverlay(e) { if(e.target.id === 'yModal') closeYModal(); }
-
-    function renderYTable(filterSub) {
-      const tbody = document.getElementById('yTableBody');
-      tbody.innerHTML = '';
-      const subMap = { math: "數學", chi: "國語", eng: "英文" };
-      yTimeData.forEach(item => {
-        if(filterSub === 'all' || item.sub === filterSub) {
-          tbody.innerHTML += `<tr>
-            <td><strong>${subMap[item.sub]}</strong></td>
-            <td>${item.grade}</td>
-            <td>${item.content}</td>
-            <td><strong style="color:var(--primary-color);">${item.y}</strong></td>
-          </tr>`;
-        }
-      });
-    }
-
-    function filterYTable(sub) { renderYTable(sub); }
 
     function switchMobileTab(tab) {
       const f = document.getElementById('formPane');
@@ -788,12 +654,10 @@
       updateReport();
     }
 
-    // 當選擇科目時，動態帶出該科目的所有級別
     function onSubjectOrGradeChange() {
       const s = document.getElementById('subject').value;
       const gSel = document.getElementById('materialGrade');
       
-      // 保存當前選取的級別
       const curGrade = gSel.value;
       gSel.innerHTML = '<option value="">-- 請選擇級別 --</option>';
 
@@ -805,16 +669,13 @@
         });
       }
 
-      // 若剛剛有選過級別則還原
       if (curGrade && syllabusData[s] && syllabusData[s][curGrade]) {
         gSel.value = curGrade;
       }
 
       updateUnitList();
       findFocus(); 
-      autoCalculateSCT();
 
-      // 自動將級別對應到相當學年
       const eqSelect = document.getElementById('equivalentGrade');
       if (gSel.value && equivalentGradeMap[gSel.value]) {
         eqSelect.value = equivalentGradeMap[gSel.value];
@@ -859,28 +720,9 @@
       }
 
       findFocus();
-      autoCalculateSCT();
       updateReport();
     }
 
-    function autoCalculateSCT() {
-      const sb = document.getElementById('subject').value;
-      const mg = document.getElementById('materialGrade').value;
-      const s = parseInt(document.getElementById('startPage').value);
-      const e = parseInt(document.getElementById('endPage').value);
-      const stdInput = document.getElementById('standardTime');
-
-      if (sb && mg && !isNaN(s) && !isNaN(e) && e >= s) {
-        const sheets = e - s + 1;
-        if (singleSheetSCTMap[sb] && singleSheetSCTMap[sb][mg]) {
-          const perSheetTime = singleSheetSCTMap[sb][mg];
-          const totalY = Math.round(sheets * perSheetTime * 10) / 10;
-          stdInput.value = totalY;
-        }
-      }
-    }
-
-    // 更新！讓單元重點和下拉選單一起完美雙向連動
     function findFocus() {
       const sb = document.getElementById('subject').value;
       const mg = document.getElementById('materialGrade').value;
