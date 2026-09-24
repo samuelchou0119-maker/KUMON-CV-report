@@ -276,19 +276,20 @@
     }
 
     @media (max-width: 500px) {
-      /* 強制限制欄寬不能超過一半 (minmax)，防止 iOS 日期選擇器撐破版面 */
-      .grid-2 {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      .grid-2, .grid-3 {
         gap: 6px;
+      }
+      .grid-2 {
+        grid-template-columns: 1fr 1fr; 
       }
       .grid-3 {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
-        gap: 6px;
+        grid-template-columns: 1fr 1fr 1fr;
       }
-      /* 縮小輸入框字體與左右內距，讓日期文字能完整塞入較窄的框內 */
-      input[type="text"], input[type="number"], input[type="date"], select, textarea {
-        padding: 6px 4px;
-        font-size: 0.8rem;
+      input, select, textarea, .readonly-box {
+        min-width: 0 !important; 
+        width: 100%;
+        padding: 8px 4px !important;
+        font-size: 0.8rem !important;
       }
     }
   </style>
@@ -421,9 +422,9 @@
             </select>
           </div>
           <div class="form-group">
-            <label>教材級數</label>
+            <label>教材級別</label>
             <select id="materialGrade" onchange="onSubjectOrGradeChange()">
-              <option value="">-- 請選擇級數 --</option>
+              <option value="">-- 請選擇級別 --</option>
             </select>
           </div>
           <div class="form-group">
@@ -576,7 +577,7 @@
           <button class="btn btn-secondary" style="padding:4px 10px; font-size:0.8rem;" onclick="filterYTable('all')">顯示全部</button>
         </div>
         <table class="y-table">
-          <thead><tr><th>科目</th><th>級數</th><th>內容/單元</th><th>SCT (分/張)</th></tr></thead>
+          <thead><tr><th>科目</th><th>級別</th><th>內容/單元</th><th>SCT (分/張)</th></tr></thead>
           <tbody id="yTableBody"></tbody>
         </table>
       </div>
@@ -591,6 +592,27 @@
       "KUMON 淡水新市一路教室": "吳尹文老師", "KUMON 基隆愛六路教室": "陳彥妤老師", "KUMON 基隆暖暖教室": "陳麗真老師",
       "KUMON汐止仁愛教室": "陳桂英老師", "KUMON新店中興德正教室": "吳大宇老師", "KUMON 新莊中港教室": "吳素秋老師",
       "KUMON新莊昌平教室": "鄧玫芳老師", "KUMON 新莊中正天泉教室": "卓祐琪老師", "KUMON 林口文化三路三民教室": "黃嘉雯老師"
+    };
+
+    // 新增：教材級別自動對應學年
+    const equivalentGradeMap = {
+      "7A": "幼未", "6A": "幼未", "5A": "幼未",
+      "4A": "幼小",
+      "3A": "幼中",
+      "2A": "幼大",
+      "A": "小一", "AI": "小一", "AII": "小一",
+      "B": "小二", "BI": "小二", "BII": "小二",
+      "C": "小三", "CI": "小三", "CII": "小三",
+      "D": "小四",
+      "E": "小五",
+      "F": "小六",
+      "G": "國一",
+      "H": "國二",
+      "I": "國三",
+      "J": "高一", "K": "高一",
+      "L": "高二", "M": "高二",
+      "N": "高三", "O": "高三",
+      "XV": "大學", "XM": "大學", "XP": "大學"
     };
 
     const singleSheetSCTMap = {
@@ -631,7 +653,7 @@
       { sub: "eng", grade: "J~O", content: "原著閱讀、名著賞析、高級詞彙", y: "4 ~ 16 分鐘" }
     ];
 
-    // 三科完整正版級數與課題資料庫
+    // 三科完整正版級別與課題資料庫
     const syllabusData = {
       "math": {
         "6A": { "1": {"name": "數一數（到5）1", "focus": "透過數物件和點點，數數到3"}, "21": {"name": "數一數（到5）3", "focus": "透過數物件和點點，數數到5"}, "101": {"name": "念數字（到10）1", "focus": "熟悉10個以內的數量和認讀7以內的數字"} },
@@ -766,14 +788,14 @@
       updateReport();
     }
 
-    // 當選擇科目時，動態帶出該科目的所有級數
+    // 當選擇科目時，動態帶出該科目的所有級別
     function onSubjectOrGradeChange() {
       const s = document.getElementById('subject').value;
       const gSel = document.getElementById('materialGrade');
       
-      // 保存當前選取的級數
+      // 保存當前選取的級別
       const curGrade = gSel.value;
-      gSel.innerHTML = '<option value="">-- 請選擇級數 --</option>';
+      gSel.innerHTML = '<option value="">-- 請選擇級別 --</option>';
 
       if(s && syllabusData[s]) {
         Object.keys(syllabusData[s]).forEach(g => {
@@ -783,13 +805,23 @@
         });
       }
 
-      // 若剛剛有選過級數則還原
+      // 若剛剛有選過級別則還原
       if (curGrade && syllabusData[s] && syllabusData[s][curGrade]) {
         gSel.value = curGrade;
       }
 
       updateUnitList();
+      findFocus(); 
       autoCalculateSCT();
+
+      // 自動將級別對應到相當學年
+      const eqSelect = document.getElementById('equivalentGrade');
+      if (gSel.value && equivalentGradeMap[gSel.value]) {
+        eqSelect.value = equivalentGradeMap[gSel.value];
+      } else {
+        eqSelect.value = "未提供";
+      }
+
       updateReport();
     }
 
@@ -848,22 +880,35 @@
       }
     }
 
+    // 更新！讓單元重點和下拉選單一起完美雙向連動
     function findFocus() {
       const sb = document.getElementById('subject').value;
       const mg = document.getElementById('materialGrade').value;
       const sp = parseInt(document.getElementById('startPage').value);
       const focusArea = document.getElementById('unitFocus');
+      const uSel = document.getElementById('unitSelect');
 
-      if(!sb || !mg || isNaN(sp) || !syllabusData[sb] || !syllabusData[sb][mg]) return;
+      if(!sb || !mg || isNaN(sp) || !syllabusData[sb] || !syllabusData[sb][mg]) {
+        focusArea.value = '';
+        uSel.value = '';
+        return;
+      }
+      
       const units = syllabusData[sb][mg];
       const keys = Object.keys(units).map(x=>parseInt(x)).sort((a,b)=>a-b);
       let matched = null;
+      
       for(let k of keys) {
         if(sp >= k) matched = k;
         else break;
       }
+      
       if(matched && units[matched]) {
         focusArea.value = `${units[matched].name}（${units[matched].focus}）`;
+        uSel.value = matched.toString(); 
+      } else {
+        focusArea.value = '';
+        uSel.value = '';
       }
     }
 
