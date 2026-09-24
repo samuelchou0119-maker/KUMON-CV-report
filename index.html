@@ -276,13 +276,18 @@
     }
 
     @media (max-width: 500px) {
-      /* 縮小雙欄的間距 */
-      .grid-2, .grid-3 { 
-        gap: 6px; 
+      /* 強制限制欄寬不能超過一半 (minmax)，防止 iOS 日期選擇器撐破版面 */
+      .grid-2 {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 6px;
       }
-      /* 縮小輸入框字體與左右內距，讓日期能完整顯示 */
+      .grid-3 {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+        gap: 6px;
+      }
+      /* 縮小輸入框字體與左右內距，讓日期文字能完整塞入較窄的框內 */
       input[type="text"], input[type="number"], input[type="date"], select, textarea {
-        padding: 8px 4px;
+        padding: 6px 4px;
         font-size: 0.8rem;
       }
     }
