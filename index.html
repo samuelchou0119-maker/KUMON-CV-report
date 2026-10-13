@@ -326,19 +326,19 @@
           </div>
         </div>
 
-        <!-- 新增：學診結果、出發點、預計進度 -->
+        <!-- 新增：「學診」、「結果」、「出發點」三格 -->
         <div class="grid-3">
           <div class="form-group">
-            <label>學診結果</label>
-            <input type="text" id="diagnosticResult" oninput="updateReport()" placeholder="例：3A 15分">
+            <label>學診</label>
+            <input type="text" id="diagnosticExam" oninput="updateReport()" placeholder="例：3A">
+          </div>
+          <div class="form-group">
+            <label>結果</label>
+            <input type="text" id="diagnosticResult" oninput="updateReport()" placeholder="例：15分">
           </div>
           <div class="form-group">
             <label>出發點</label>
             <input type="text" id="startingPoint" oninput="updateReport()" placeholder="例：4A 1">
-          </div>
-          <div class="form-group">
-            <label>預計進度</label>
-            <input type="text" id="targetProgress" oninput="updateReport()" placeholder="例：6個月超越學年">
           </div>
         </div>
 
@@ -735,9 +735,9 @@
       const eStr = (ey && em) ? `${ey}/${em}` : '未提供';
       const period = document.getElementById('studyPeriod').textContent !== '--' ? document.getElementById('studyPeriod').textContent : '未提供';
       
+      const diagExam = document.getElementById('diagnosticExam').value || '未提供';
       const diagResult = document.getElementById('diagnosticResult').value || '未提供';
       const startPoint = document.getElementById('startingPoint').value || '未提供';
-      const targetProg = document.getElementById('targetProgress').value || '未提供';
       
       const days = document.getElementById('classDays').value || '未提供';
 
@@ -777,9 +777,9 @@
 老師姓名：${tName}
 學生姓名與學年：${name}／${grade}
 入學日期／學習期間：${eStr}／${period}
-學診結果：${diagResult}
+學診：${diagExam}
+結果：${diagResult}
 出發點：${startPoint}
-預計進度：${targetProg}
 到教室時間：${days}
 
 📚 【當日學習表現】
