@@ -42,8 +42,6 @@
 
     header h1 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
 
-    .header-btns { display: flex; gap: 8px; }
-
     .mobile-tabs {
       display: none;
       background: #0f172a;
@@ -146,10 +144,7 @@
       align-items: center;
     }
 
-    /* 調整學習次數下拉選單高度 */
-    #visitTimes {
-      height: 38px;
-    }
+    #visitTimes { height: 38px; }
 
     .preview-header {
       padding: 12px 16px;
@@ -158,6 +153,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .preview-content {
@@ -173,7 +170,7 @@
     }
 
     .btn {
-      padding: 8px 14px;
+      padding: 8px 12px;
       border-radius: 6px;
       border: none;
       font-weight: 600;
@@ -187,6 +184,7 @@
     .btn-primary { background-color: var(--primary-color); color: white; }
     .btn-warning { background-color: #f59e0b; color: white; }
     .btn-secondary { background-color: #e2e8f0; color: #334155; }
+    .btn-success { background-color: #10b981; color: white; }
 
     .float-btn {
       display: none;
@@ -220,6 +218,46 @@
       font-size: 0.85rem;
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
+
+    /* 暫存列表項目樣式優化 */
+    .saved-item {
+      display: flex;
+      align-items: center;
+      background: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      gap: 8px;
+    }
+    
+    .saved-item.editing {
+      border: 2px solid var(--primary-color);
+      background-color: var(--primary-light);
+    }
+
+    .saved-item-btns {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      padding: 4px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-btn-edit { color: var(--primary-color); }
+    .icon-btn-edit:hover { background-color: #e0f2fe; }
+    .icon-btn-delete { color: #ef4444; }
+    .icon-btn-delete:hover { background-color: #fee2e2; }
 
     @media (max-width: 850px) {
       .mobile-tabs { display: flex; }
@@ -326,7 +364,6 @@
           </div>
         </div>
 
-        <!-- 新增：「學診」、「結果」、「出發點」三格 -->
         <div class="grid-3">
           <div class="form-group">
             <label>學診</label>
@@ -372,7 +409,6 @@
       <div class="section-card">
         <div class="section-title">
           <span>③ 📚 當日教材資訊</span>
-          <!-- 連至指定的 Google Drive 雲端資料夾 -->
           <button class="btn btn-warning" style="padding:2px 8px; font-size:0.75rem;" onclick="window.open('https://drive.google.com/drive/folders/1dLfW4JsctSO4Z5nZPed9xSSutnW3o86y?usp=drive_link', '_blank')"><i class="fa-solid fa-clock"></i> SCT</button>
         </div>
         <div class="grid-3">
@@ -519,9 +555,12 @@
       <div class="preview-header">
         <span style="font-weight:bold;">📄 報告即時預覽</span>
         <div style="display: flex; gap: 6px;">
-          <button class="btn btn-primary" onclick="addCurrentStudentToList()">
-            <i class="fa-solid fa-user-plus"></i> 暫存並填下一位
-          </button>
+          <!-- 動態按鈕區 -->
+          <div id="actionBtnGroup" style="display: flex; gap: 6px;">
+            <button class="btn btn-primary" onclick="addCurrentStudentToList()">
+              <i class="fa-solid fa-user-plus"></i> 暫存並填下一位
+            </button>
+          </div>
           <button class="btn btn-secondary" onclick="copyReport()">
             <i class="fa-solid fa-copy"></i> 複製單人
           </button>
@@ -540,7 +579,7 @@
             <i class="fa-solid fa-file-export"></i> 一鍵複製全部報告
           </button>
         </div>
-        <div id="savedList" style="max-height: 120px; overflow-y: auto; font-size: 0.8rem; display: flex; flex-direction: column; gap: 6px;">
+        <div id="savedList" style="max-height: 130px; overflow-y: auto; font-size: 0.82rem; display: flex; flex-direction: column; gap: 6px;">
           <div style="color: #94a3b8; text-align: center; padding: 6px;">尚未暫存任何學生</div>
         </div>
       </div>
@@ -584,6 +623,8 @@
 
     // 儲存暫存報告陣列
     let savedReports = [];
+    // 當前正在編輯的索引 (-1 代表新增狀態)
+    let editingIndex = -1;
 
     window.onload = function() {
       document.getElementById('visitDate').valueAsDate = new Date();
@@ -870,7 +911,94 @@ ${spec}
       });
     }
 
-    /* --- 多學生暫存相關功能 --- */
+    /* --- 表單資料擷取與還原 --- */
+
+    function getFormData() {
+      return {
+        studentName: document.getElementById('studentName').value,
+        studentGrade: document.getElementById('studentGrade').value,
+        enrollYear: document.getElementById('enrollYear').value,
+        enrollMonth: document.getElementById('enrollMonth').value,
+        diagnosticExam: document.getElementById('diagnosticExam').value,
+        diagnosticResult: document.getElementById('diagnosticResult').value,
+        startingPoint: document.getElementById('startingPoint').value,
+        classDays: document.getElementById('classDays').value,
+        visitTimes: document.getElementById('visitTimes').value,
+        subject: document.getElementById('subject').value,
+        materialGrade: document.getElementById('materialGrade').value,
+        penUsage: document.getElementById('penUsage').value,
+        startPage: document.getElementById('startPage').value,
+        endPage: document.getElementById('endPage').value,
+        unitSelect: document.getElementById('unitSelect').value,
+        equivalentGrade: document.getElementById('equivalentGrade').value,
+        actualTime: document.getElementById('actualTime').value,
+        standardTime: document.getElementById('standardTime').value,
+        unitFocus: document.getElementById('unitFocus').value,
+        obsWork: document.getElementById('obsWork').value,
+        obsAttitude: document.getElementById('obsAttitude').value,
+        obsHabit: document.getElementById('obsHabit').value,
+        obsCorrection: document.getElementById('obsCorrection').value,
+        obsReading: document.getElementById('obsReading').value,
+        examProgress: document.getElementById('examProgress').value,
+        progressEval: document.getElementById('progressEval').value,
+        guidanceDetail: document.getElementById('guidanceDetail').value,
+        guidanceEncourage: document.getElementById('guidanceEncourage').value,
+        warningItems: document.getElementById('warningItems').value,
+        riskLevel: document.getElementById('riskLevel').value,
+        specialObs: document.getElementById('specialObs').value,
+        photoUrl: document.getElementById('photoUrl').value,
+        videoUrl: document.getElementById('videoUrl').value
+      };
+    }
+
+    function populateFormData(data) {
+      document.getElementById('studentName').value = data.studentName || '';
+      document.getElementById('studentGrade').value = data.studentGrade || '';
+      document.getElementById('enrollYear').value = data.enrollYear || '';
+      document.getElementById('enrollMonth').value = data.enrollMonth || '';
+      document.getElementById('diagnosticExam').value = data.diagnosticExam || '';
+      document.getElementById('diagnosticResult').value = data.diagnosticResult || '';
+      document.getElementById('startingPoint').value = data.startingPoint || '';
+      document.getElementById('classDays').value = data.classDays || '';
+      document.getElementById('visitTimes').value = data.visitTimes || '第一次學習';
+      
+      document.getElementById('subject').value = data.subject || '';
+      onSubjectOrGradeChange();
+      
+      document.getElementById('materialGrade').value = data.materialGrade || '';
+      updateUnitList();
+
+      document.getElementById('penUsage').value = data.penUsage || '';
+      document.getElementById('startPage').value = data.startPage || '';
+      document.getElementById('endPage').value = data.endPage || '';
+      onPageInput();
+
+      document.getElementById('unitSelect').value = data.unitSelect || '';
+      document.getElementById('equivalentGrade').value = data.equivalentGrade || '未提供';
+      document.getElementById('actualTime').value = data.actualTime || '';
+      document.getElementById('standardTime').value = data.standardTime || '';
+      document.getElementById('unitFocus').value = data.unitFocus || '';
+
+      document.getElementById('obsWork').value = data.obsWork || '';
+      document.getElementById('obsAttitude').value = data.obsAttitude || '';
+      document.getElementById('obsHabit').value = data.obsHabit || '';
+      document.getElementById('obsCorrection').value = data.obsCorrection || '';
+      document.getElementById('obsReading').value = data.obsReading || '';
+      document.getElementById('examProgress').value = data.examProgress || '';
+      document.getElementById('progressEval').value = data.progressEval || '未提供';
+      document.getElementById('guidanceDetail').value = data.guidanceDetail || '';
+      document.getElementById('guidanceEncourage').value = data.guidanceEncourage || '';
+      document.getElementById('warningItems').value = data.warningItems || '';
+      document.getElementById('riskLevel').value = data.riskLevel || '未提供';
+      document.getElementById('specialObs').value = data.specialObs || '';
+      document.getElementById('photoUrl').value = data.photoUrl || '';
+      document.getElementById('videoUrl').value = data.videoUrl || '';
+
+      calculateDuration();
+      updateReport();
+    }
+
+    /* --- 多學生暫存與修改邏輯 --- */
 
     function addCurrentStudentToList() {
       const name = document.getElementById('studentName').value.trim();
@@ -879,24 +1007,75 @@ ${spec}
         return;
       }
 
+      const formData = getFormData();
       const currentTxt = document.getElementById('reportPreview').textContent;
 
-      savedReports.push({
-        name: name,
-        text: currentTxt
-      });
+      if (editingIndex >= 0) {
+        // 更新現有暫存
+        savedReports[editingIndex] = {
+          name: name,
+          text: currentTxt,
+          formData: formData
+        };
+        showToast(`已成功更新「${name}」的報告！`);
+        cancelEditMode();
+      } else {
+        // 新增暫存
+        savedReports.push({
+          name: name,
+          text: currentTxt,
+          formData: formData
+        });
+        showToast(`已成功將「${name}」加入暫存！`);
+        clearStudentFieldsOnly();
+      }
 
       renderSavedList();
-      clearStudentFieldsOnly();
-
-      showToast(`已成功將「${name}」加入暫存！`);
 
       if (typeof switchMobileTab === 'function') switchMobileTab('form');
       document.getElementById('formPane').scrollTop = 0;
     }
 
+    function editSavedReport(index) {
+      editingIndex = index;
+      const item = savedReports[index];
+      populateFormData(item.formData);
+
+      // 切換右上角按鈕組為「儲存修改」與「取消修改」
+      const btnGroup = document.getElementById('actionBtnGroup');
+      btnGroup.innerHTML = `
+        <button class="btn btn-success" onclick="addCurrentStudentToList()">
+          <i class="fa-solid fa-check"></i> 儲存修改
+        </button>
+        <button class="btn btn-secondary" onclick="cancelEditMode()">
+          <i class="fa-solid fa-xmark"></i> 取消
+        </button>
+      `;
+
+      renderSavedList();
+      showToast(`正在編輯「${item.name}」的報告`);
+
+      // 自動切換至表單模式
+      if (typeof switchMobileTab === 'function') switchMobileTab('form');
+      document.getElementById('formPane').scrollTop = 0;
+    }
+
+    function cancelEditMode() {
+      editingIndex = -1;
+      clearStudentFieldsOnly();
+
+      // 還原按鈕組
+      const btnGroup = document.getElementById('actionBtnGroup');
+      btnGroup.innerHTML = `
+        <button class="btn btn-primary" onclick="addCurrentStudentToList()">
+          <i class="fa-solid fa-user-plus"></i> 暫存並填下一位
+        </button>
+      `;
+
+      renderSavedList();
+    }
+
     function clearStudentFieldsOnly() {
-      // 1. 清空學生個人欄位 (保留教室名稱、負責老師、實際訪問日期)
       document.getElementById('studentName').value = '';
       document.getElementById('studentGrade').value = '';
       document.getElementById('enrollYear').value = '';
@@ -907,7 +1086,6 @@ ${spec}
       document.getElementById('startingPoint').value = '';
       document.getElementById('classDays').value = '';
 
-      // 2. 清空當日教材
       document.getElementById('subject').value = '';
       document.getElementById('materialGrade').innerHTML = '<option value="">-- 請選擇級別 --</option>';
       document.getElementById('penUsage').value = '';
@@ -920,7 +1098,6 @@ ${spec}
       document.getElementById('standardTime').value = '';
       document.getElementById('unitFocus').value = '';
 
-      // 3. 清空觀察評估文字
       document.getElementById('obsWork').value = '';
       document.getElementById('obsAttitude').value = '';
       document.getElementById('obsHabit').value = '';
@@ -950,21 +1127,38 @@ ${spec}
 
       listContainer.innerHTML = '';
       savedReports.forEach((item, index) => {
+        const isEditing = (index === editingIndex);
         const itemDiv = document.createElement('div');
-        itemDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1;';
+        itemDiv.className = `saved-item ${isEditing ? 'editing' : ''}`;
+        
+        // 將編輯與刪除按鈕移至最左側 (學生名字前方)
         itemDiv.innerHTML = `
-          <span><b>${index + 1}. ${item.name}</b> 的訪問報告</span>
-          <button onclick="removeSavedReport(${index})" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.9rem;">
-            <i class="fa-solid fa-trash"></i>
-          </button>
+          <div class="saved-item-btns">
+            <button class="icon-btn icon-btn-edit" onclick="editSavedReport(${index})" title="修改此學生資料">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+            <button class="icon-btn icon-btn-delete" onclick="removeSavedReport(${index})" title="刪除">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <b>${index + 1}. ${item.name}</b> ${isEditing ? '<span style="color:var(--primary-color); font-weight:bold;">(編輯中...)</span>' : ''}
+          </span>
         `;
         listContainer.appendChild(itemDiv);
       });
     }
 
     function removeSavedReport(index) {
-      savedReports.splice(index, 1);
-      renderSavedList();
+      if (confirm(`確定要刪除「${savedReports[index].name}」的暫存報告嗎？`)) {
+        if (editingIndex === index) {
+          cancelEditMode();
+        } else if (editingIndex > index) {
+          editingIndex--;
+        }
+        savedReports.splice(index, 1);
+        renderSavedList();
+      }
     }
 
     function copyAllReports() {
