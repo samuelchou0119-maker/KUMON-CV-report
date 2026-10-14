@@ -514,13 +514,36 @@
 
     </div>
 
-    <!-- 右側：即時預覽 -->
+    <!-- 右側：即時預覽與暫存區 -->
     <div class="preview-pane" id="previewPane">
       <div class="preview-header">
         <span style="font-weight:bold;">📄 報告即時預覽</span>
-        <button class="btn btn-secondary" onclick="copyReport()"><i class="fa-solid fa-copy"></i> 複製文字</button>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn btn-primary" onclick="addCurrentStudentToList()">
+            <i class="fa-solid fa-user-plus"></i> 暫存並填下一位
+          </button>
+          <button class="btn btn-secondary" onclick="copyReport()">
+            <i class="fa-solid fa-copy"></i> 複製單人
+          </button>
+        </div>
       </div>
+      
       <div class="preview-content" id="reportPreview"></div>
+
+      <!-- 暫存清單列表 -->
+      <div style="padding: 12px 16px; background: #f1f5f9; border-top: 2px solid var(--border-color); flex-shrink: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-weight: bold; font-size: 0.88rem;">
+            📋 已暫存學生 (<span id="savedCount">0</span>人)
+          </span>
+          <button class="btn btn-warning" onclick="copyAllReports()" style="padding: 4px 10px; font-size: 0.8rem;">
+            <i class="fa-solid fa-file-export"></i> 一鍵複製全部報告
+          </button>
+        </div>
+        <div id="savedList" style="max-height: 120px; overflow-y: auto; font-size: 0.8rem; display: flex; flex-direction: column; gap: 6px;">
+          <div style="color: #94a3b8; text-align: center; padding: 6px;">尚未暫存任何學生</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -558,6 +581,9 @@
       "N": "高三", "O": "高三",
       "XV": "大學", "XM": "大學", "XP": "大學"
     };
+
+    // 儲存暫存報告陣列
+    let savedReports = [];
 
     window.onload = function() {
       document.getElementById('visitDate').valueAsDate = new Date();
@@ -840,10 +866,125 @@ ${spec}
     function copyReport() {
       const t = document.getElementById('reportPreview').textContent;
       navigator.clipboard.writeText(t).then(() => {
-        const toast = document.getElementById('toast');
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 2000);
+        showToast("已成功複製到剪貼簿！");
       });
+    }
+
+    /* --- 多學生暫存相關功能 --- */
+
+    function addCurrentStudentToList() {
+      const name = document.getElementById('studentName').value.trim();
+      if (!name) {
+        alert("請先輸入學生姓名再加入暫存！");
+        return;
+      }
+
+      const currentTxt = document.getElementById('reportPreview').textContent;
+
+      savedReports.push({
+        name: name,
+        text: currentTxt
+      });
+
+      renderSavedList();
+      clearStudentFieldsOnly();
+
+      showToast(`已成功將「${name}」加入暫存！`);
+
+      if (typeof switchMobileTab === 'function') switchMobileTab('form');
+      document.getElementById('formPane').scrollTop = 0;
+    }
+
+    function clearStudentFieldsOnly() {
+      // 1. 清空學生個人欄位 (保留教室名稱、負責老師、實際訪問日期)
+      document.getElementById('studentName').value = '';
+      document.getElementById('studentGrade').value = '';
+      document.getElementById('enrollYear').value = '';
+      document.getElementById('enrollMonth').value = '';
+      document.getElementById('studyPeriod').textContent = '--';
+      document.getElementById('diagnosticExam').value = '';
+      document.getElementById('diagnosticResult').value = '';
+      document.getElementById('startingPoint').value = '';
+      document.getElementById('classDays').value = '';
+
+      // 2. 清空當日教材
+      document.getElementById('subject').value = '';
+      document.getElementById('materialGrade').innerHTML = '<option value="">-- 請選擇級別 --</option>';
+      document.getElementById('penUsage').value = '';
+      document.getElementById('startPage').value = '';
+      document.getElementById('endPage').value = '';
+      document.getElementById('sheetCount').textContent = '--';
+      document.getElementById('unitSelect').innerHTML = '<option value="">-- 請選擇單元 --</option>';
+      document.getElementById('equivalentGrade').value = '未提供';
+      document.getElementById('actualTime').value = '';
+      document.getElementById('standardTime').value = '';
+      document.getElementById('unitFocus').value = '';
+
+      // 3. 清空觀察評估文字
+      document.getElementById('obsWork').value = '';
+      document.getElementById('obsAttitude').value = '';
+      document.getElementById('obsHabit').value = '';
+      document.getElementById('obsCorrection').value = '';
+      document.getElementById('obsReading').value = '';
+      document.getElementById('examProgress').value = '';
+      document.getElementById('progressEval').value = '未提供';
+      document.getElementById('guidanceDetail').value = '';
+      document.getElementById('guidanceEncourage').value = '';
+      document.getElementById('warningItems').value = '';
+      document.getElementById('riskLevel').value = '未提供';
+      document.getElementById('specialObs').value = '';
+      document.getElementById('photoUrl').value = '';
+      document.getElementById('videoUrl').value = '';
+
+      updateReport();
+    }
+
+    function renderSavedList() {
+      const listContainer = document.getElementById('savedList');
+      document.getElementById('savedCount').textContent = savedReports.length;
+
+      if (savedReports.length === 0) {
+        listContainer.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 6px;">尚未暫存任何學生</div>';
+        return;
+      }
+
+      listContainer.innerHTML = '';
+      savedReports.forEach((item, index) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1;';
+        itemDiv.innerHTML = `
+          <span><b>${index + 1}. ${item.name}</b> 的訪問報告</span>
+          <button onclick="removeSavedReport(${index})" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.9rem;">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        `;
+        listContainer.appendChild(itemDiv);
+      });
+    }
+
+    function removeSavedReport(index) {
+      savedReports.splice(index, 1);
+      renderSavedList();
+    }
+
+    function copyAllReports() {
+      if (savedReports.length === 0) {
+        alert("目前暫存清單中沒有報告可以複製喔！");
+        return;
+      }
+
+      const allTxt = savedReports.map(item => item.text).join('\n\n========================================\n\n');
+
+      navigator.clipboard.writeText(allTxt).then(() => {
+        showToast(`已成功一次複製 ${savedReports.length} 位學生的報告！`);
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2000);
     }
   </script>
 </body>
